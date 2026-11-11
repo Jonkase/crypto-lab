@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="ru" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Интерактивный гид по криптографии: Атбаш, Цезарь, Виженер</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                        mono: ['"Fira Code"', 'monospace'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .font-mono { font-family: 'Fira Code', monospace; }
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .glow-effect {
+            box-shadow: 0 0 25px -5px rgba(99, 102, 241, 0.3);
+        }
+        
+        /* Keyframe Animations for Letter Transformations */
+        @keyframes slideAlongAlphabet {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.25); }
+            100% { transform: scale(1); }
+        }
+
+        .anim-highlight {
+            animation: slideAlongAlphabet 0.6s ease-in-out;
+        }
+
+        .letter-node {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col selection:bg-indigo-500 selection:text-white">
+
+    <!-- Header -->
+    <header class="border-b border-slate-800 bg-slate-900/80 sticky top-0 z-50 backdrop-blur-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-12 h-12 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center glow-effect">
+                    <i class="fa-solid fa-shield-halved text-white text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold bg-gradient-to-r from-indigo-400 via-purple-300 to-pink-400 bg-clip-text text-transparent">КриптоЛаб</h1>
+                    <p class="text-xs text-slate-400">Шифры: Атбаш, Цезарь, Виженер (Русский алфавит)</p>
+                </div>
+            </div>
+            <!-- Navigation Tabs (3 Sections) -->
+            <nav class="hidden md:flex space-x-1 bg-slate-900 p-1.5 rounded-xl border border-slate-800">
+                <button onclick="switchTab('theory')" id="nav-theory" class="px-5 py-2.5 rounded-lg text-sm font-medium transition-all bg-indigo-600 text-white shadow-lg">
+                    <i class="fa-solid fa-book-open mr-2"></i>1. Теория
+                </button>
+                <button onclick="switchTab('animation')" id="nav-animation" class="px-5 py-2.5 rounded-lg text-sm font-medium transition-all text-slate-400 hover:text-white hover:bg-slate-800">
+                    <i class="fa-solid fa-film mr-2"></i>2. Анимация X ➔ Y
+                </button>
+                <button onclick="switchTab('encoder')" id="nav-encoder" class="px-5 py-2.5 rounded-lg text-sm font-medium transition-all text-slate-400 hover:text-white hover:bg-slate-800">
+                    <i class="fa-solid fa-terminal mr-2"></i>3. Шифратор
+                </button>
+            </nav>
+            <div class="flex items-center space-x-2">
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono">
+                    <span class="w-2 h-2 mr-1.5 rounded-full bg-emerald-400 animate-pulse"></span> А-Я (33 буквы)
+                </span>
+            </div>
+        </div>
+        <!-- Mobile Navbar -->
+        <div class="flex md:hidden overflow-x-auto px-4 py-2 bg-slate-900 border-t border-slate-800 space-x-2">
+            <button onclick="switchTab('theory')" id="mob-nav-theory" class="flex-1 whitespace-nowrap px-3 py-2 rounded-lg text-xs font-medium bg-indigo-600 text-white">1. Теория</button>
+            <button onclick="switchTab('animation')" id="mob-nav-animation" class="flex-1 whitespace-nowrap px-3 py-2 rounded-lg text-xs font-medium text-slate-400 bg-slate-800">2. Анимация</button>
+            <button onclick="switchTab('encoder')" id="mob-nav-encoder" class="flex-1 whitespace-nowrap px-3 py-2 rounded-lg text-xs font-medium text-slate-400 bg-slate-800">3. Шифратор</button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <!-- SECTION 1: THEORY (Clean, read-only, no interactive fluff) -->
+        <section id="tab-theory" class="space-y-8">
+            <div class="text-center max-w-3xl mx-auto space-y-3">
+                <h2 class="text-3xl font-extrabold text-white">Теоретические основы классической криптографии</h2>
+                <p class="text-slate-400 text-sm leading-relaxed">
+                    Все представленные шифры работают с русским алфавитом из 33 букв (от А=0 до Я=32). Ниже приведены математические законы и наглядная суть каждого алгоритма.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Atbash Theory -->
+                <div class="glass-panel p-6 sm:p-8 rounded-3xl space-y-6 border border-slate-800 flex flex-col justify-between">
+                    <div class="space-y-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold text-lg">АТ</div>
+                            <h3 class="text-xl font-bold text-white">Шифр Атбаш</h3>
+                        </div>
+                        <p class="text-slate-300 text-sm leading-relaxed">
+                            Древний шифр простой моноалфавитной подстановки. Алфавит записывается в обратном порядке: первая буква меняется на последнюю, вторая на предпоследнюю и так далее.
+                        </p>
+                        
+                        <div class="space-y-2 pt-2">
+                            <div class="text-xs uppercase font-semibold text-slate-400 tracking-wider">Математический закон:</div>
+                            <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 font-mono text-xs text-indigo-300">
+                                ИНДЕКС_ВЫХОДА = 32 - ИНДЕКС_ВХОДА
+                            </div>
+                        </div>
+
+                        <div class="space-y-2 pt-2">
+                            <div class="text-xs uppercase font-semibold text-slate-400 tracking-wider">Наглядные соответствия:</div>
+                            <div class="bg-slate-900/90 p-3 rounded-xl border border-slate-800 font-mono text-xs space-y-1 text-slate-300">
+                                <div class="flex justify-between"><span>А (0) ➔ Я (32)</span><span>Б (1) ➔ Ю (31)</span></div>
+                                <div class="flex justify-between"><span>В (2) ➔ Э (30)</span><span>П (16) ➔ П (16)</span></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-xs text-slate-500 pt-4 border-t border-slate-800">
+                        Особенность: Шифрование и расшифрование выполняются по абсолютно одинаковой формуле.
+                    </div>
+                </div>
+
+                <!-- Caesar Theory -->
+                <div class="glass-panel p-6 sm:p-8 rounded-3xl space-y-6 border border-slate-800 flex flex-col justify-between">
+                    <div class="space-y-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold text-lg">ЦЗ</div>
+                            <h3 class="text-xl font-bold text-white">Шифр Цезаря</h3>
+                        </div>
+                        <p class="text-slate-300 text-sm leading-relaxed">
+                            Шифр моноалфавитного сдвига. Каждая буква исходного текста смещается по алфавиту вправо на фиксированное число позиций (ключ <code class="text-purple-300 font-mono">К</code>). При выходе за край (после Я) отсчет продолжается с буквы А.
+                        </p>
+                        
+                        <div class="space-y-2 pt-2">
+                            <div class="text-xs uppercase font-semibold text-slate-400 tracking-wider">Математический закон:</div>
+                            <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 font-mono text-xs text-purple-300">
+                                E(x) = (ИНДЕКС_ВХОДА + K) mod 33
+                            </div>
+                        </div>
+
+                        <div class="space-y-2 pt-2">
+                            <div class="text-xs uppercase font-semibold text-slate-400 tracking-wider">Пример при сдвиге K = 3:</div>
+                            <div class="bg-slate-900/90 p-3 rounded-xl border border-slate-800 font-mono text-xs space-y-1 text-slate-300">
+                                <div class="flex justify-between"><span>А (0) + 3 ➔ Г (3)</span></div>
+                                <div class="flex justify-between"><span>Э (30) + 3 ➔ А (0)</span></div>
+                                <div class="flex justify-between"><span>Я (32) + 3 ➔ В (2)</span></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-xs text-slate-500 pt-4 border-t border-slate-800">
+                        Для расшифровки значение сдвига вычитается: <code class="text-purple-300 font-mono">D(x) = (x - K + 33) mod 33</code>.
+                    </div>
+                </div>
+
+                <!-- Vigenere Theory -->
+                <div class="glass-panel p-6 sm:p-8 rounded-3xl space-y-6 border border-slate-800 flex flex-col justify-between">
+                    <div class="space-y-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-xl bg-pink-500/20 text-pink-400 flex items-center justify-center font-bold text-lg">ВЖ</div>
+                            <h3 class="text-xl font-bold text-white">Шифр Виженера</h3>
+                        </div>
+                        <p class="text-slate-300 text-sm leading-relaxed">
+                            Полиалфавитный шифр. Использует ключевое слово. Каждая буква кодового слова определяет свой собственный величину сдвига (Цезаря) для соответствующей буквы исходного текста.
+                        </p>
+                        
+                        <div class="space-y-2 pt-2">
+                            <div class="text-xs uppercase font-semibold text-slate-400 tracking-wider">Математический закон:</div>
+                            <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 font-mono text-xs text-pink-300">
+                                E(x_i) = (ИНДЕКС_ТЕКСТА + ИНДЕКС_КЛЮЧА) mod 33
+                            </div>
+                        </div>
+
+                        <div class="space-y-2 pt-2">
+                            <div class="text-xs uppercase font-semibold text-slate-400 tracking-wider">Пример для буквы 'М' при ключе 'К':</div>
+                            <div class="bg-slate-900/90 p-3 rounded-xl border border-slate-800 font-mono text-xs space-y-1 text-slate-300">
+                                <div>Текст: М (индекс 13)</div>
+                                <div>Ключ: К (индекс 11)</div>
+                                <div class="text-emerald-400 pt-1 border-t border-slate-800">Результат: (13 + 11) = 24 ➔ Буква 'Ш'</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-xs text-slate-500 pt-4 border-t border-slate-800">
+                        Если ключ короче текста, ключевое слово циклически повторяется.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 2: ANIMATION X -> Y -->
+        <section id="tab-animation" class="space-y-8 hidden">
+            <div class="glass-panel p-6 sm:p-8 rounded-3xl space-y-6">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold text-white flex items-center">
+                            <i class="fa-solid fa-play text-indigo-400 mr-3"></i>Интерактивная анимация превращения буквы «X» ➔ «Y»
+                        </h2>
+                        <p class="text-slate-400 text-sm mt-1">Выберите алгоритм, исходную букву и параметры, чтобы запустить пошаговое visual-перемещение по алфавиту.</p>
+                    </div>
+                    
+                    <!-- Cipher Selector Controls -->
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="selectAnimCipher('atbash')" id="anim-btn-atbash" class="px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 text-white shadow-lg transition-all">
+                            Атбаш
+                        </button>
+                        <button onclick="selectAnimCipher('caesar')" id="anim-btn-caesar" class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all">
+                            Цезарь
+                        </button>
+                        <button onclick="selectAnimCipher('vigenere')" id="anim-btn-vigenere" class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all">
+                            Виженер
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Parameters Bar -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-slate-900/90 p-4 rounded-2xl border border-slate-800">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">Исходная буква (X):</label>
+                        <select id="anim-input-char" onchange="resetAnimState()" class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl px-3 py-2 font-mono text-sm focus:outline-none focus:border-indigo-500">
+                            <!-- Populated with Russian Alphabet -->
+                        </select>
+                    </div>
+
+                    <div id="anim-param-caesar-container">
+                        <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">Величина сдвига (K):</label>
+                        <input type="number" id="anim-caesar-shift" value="4" min="1" max="32" onchange="resetAnimState()" class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl px-3 py-2 font-mono text-sm focus:outline-none focus:border-indigo-500">
+                    </div>
+
+                    <div id="anim-param-vigenere-container" class="hidden">
+                        <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">Буква ключа:</label>
+                        <select id="anim-vigenere-keychar" onchange="resetAnimState()" class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl px-3 py-2 font-mono text-sm focus:outline-none focus:border-indigo-500">
+                            <!-- Populated with Russian Alphabet -->
+                        </select>
+                    </div>
+
+                    <div class="flex items-end">
+                        <button onclick="startLetterAnimation()" id="anim-start-btn" class="w-full py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold rounded-xl text-sm transition-all shadow-lg flex items-center justify-center space-x-2">
+                            <i class="fa-solid fa-play text-xs"></i> <span>Запустить анимацию</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Visual Step-by-Step Stage -->
+                <div class="bg-slate-950 p-6 rounded-2xl border border-slate-800 space-y-6">
+                    <!-- Status Header -->
+                    <div class="flex items-center justify-between text-xs font-mono border-b border-slate-900 pb-3">
+                        <span id="anim-step-title" class="text-indigo-400 font-semibold">Готово к работе</span>
+                        <span id="anim-step-counter" class="text-slate-500">Шаг 0 / 0</span>
+                    </div>
+
+                    <!-- Alphabet Track Visualization -->
+                    <div class="space-y-2">
+                        <div class="text-xs font-mono text-slate-400 uppercase tracking-wider">Лента русского алфавита (33 буквы)</div>
+                        <div id="alphabet-track" class="flex overflow-x-auto gap-1.5 py-4 px-2 bg-slate-900/80 rounded-xl border border-slate-800/80 scrollbar-thin">
+                            <!-- Populated dynamically by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Transformation Process Box -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                        <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-800 text-center space-y-1">
+                            <span class="text-xs text-slate-400 uppercase">Исходный элемент</span>
+                            <div id="anim-box-input" class="text-3xl font-bold font-mono text-indigo-400">?</div>
+                            <div id="anim-box-input-idx" class="text-xs text-slate-500 font-mono">индекс: -</div>
+                        </div>
+
+                        <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-800 text-center space-y-1 flex flex-col justify-center">
+                            <span class="text-xs text-slate-400 uppercase">Правило преобразования</span>
+                            <div id="anim-box-rule" class="text-sm font-bold font-mono text-purple-300">Выберите параметры</div>
+                            <div id="anim-box-detail" class="text-xs text-slate-400 font-mono mt-1">-</div>
+                        </div>
+
+                        <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-800 text-center space-y-1">
+                            <span class="text-xs text-slate-400 uppercase">Зашифрованный элемент</span>
+                            <div id="anim-box-output" class="text-3xl font-bold font-mono text-emerald-400">?</div>
+                            <div id="anim-box-output-idx" class="text-xs text-slate-500 font-mono">индекс: -</div>
+                        </div>
+                    </div>
+
+                    <!-- Step explanation log -->
+                    <div id="anim-log-text" class="bg-indigo-950/20 border border-indigo-500/20 p-4 rounded-xl text-sm text-indigo-200 text-center font-mono">
+                        Нажмите «Запустить анимацию», чтобы увидеть пошаговое перемещение буквы.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 3: ENCODER / DECRYPTOR + STEP-BY-STEP VISUALIZER -->
+        <section id="tab-encoder" class="space-y-8 hidden">
+            <div class="glass-panel p-6 sm:p-8 rounded-3xl space-y-8">
+                <div>
+                    <h2 class="text-2xl font-bold text-white flex items-center">
+                        <i class="fa-solid fa-terminal mr-3 text-indigo-400"></i>Интерактивный шифратор / дешифратор
+                    </h2>
+                    <p class="text-slate-400 text-sm mt-1">Введите текст на русском языке, выберите шифр и получите зашифрованный вариант с автоматической пошаговой расшифровкой.</p>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Controls Column -->
+                    <div class="space-y-5 bg-slate-900/90 p-6 rounded-2xl border border-slate-800">
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-slate-400 mb-2">Метод шифрования</label>
+                            <select id="enc-method" onchange="handleEncoderMethodChange()" class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:border-indigo-500">
+                                <option value="atbash">Атбаш (Зеркальный)</option>
+                                <option value="caesar" selected>Цезарь (Сдвиг)</option>
+                                <option value="vigenere">Виженер (Ключевое слово)</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-slate-400 mb-2">Режим работы</label>
+                            <div class="grid grid-cols-2 gap-2">
+                                <button onclick="setEncMode('encrypt')" id="btn-mode-encrypt" class="py-2.5 rounded-xl text-xs font-semibold bg-indigo-600 text-white transition-all shadow-md">Шифровать</button>
+                                <button onclick="setEncMode('decrypt')" id="btn-mode-decrypt" class="py-2.5 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all">Расшифровать</button>
+                            </div>
+                        </div>
+
+                        <!-- Caesar Param -->
+                        <div id="enc-caesar-settings" class="space-y-2">
+                            <div class="flex justify-between items-center text-xs font-semibold uppercase text-slate-400">
+                                <span>Сдвиг Цезаря ($K$):</span>
+                                <span id="enc-caesar-val" class="text-indigo-400 font-mono text-sm">3</span>
+                            </div>
+                            <input type="range" id="enc-caesar-shift" min="1" max="32" value="3" oninput="runFullEncryption()" class="w-full accent-indigo-500 bg-slate-950">
+                        </div>
+
+                        <!-- Vigenere Param -->
+                        <div id="enc-vigenere-settings" class="space-y-2 hidden">
+                            <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">Ключевое слово</label>
+                            <input type="text" id="enc-vigenere-key" value="КЛЮЧ" oninput="runFullEncryption()" placeholder="Например: КРИПТО" class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl px-4 py-2.5 text-sm font-mono uppercase focus:outline-none focus:border-indigo-500">
+                        </div>
+                    </div>
+
+                    <!-- Input & Result Columns -->
+                    <div class="lg:col-span-2 space-y-4">
+                        <div class="space-y-2">
+                            <div class="flex items-center justify-between">
+                                <label class="text-xs font-semibold uppercase text-slate-400">Исходный текст (Русский):</label>
+                                <button onclick="document.getElementById('enc-input').value='ПРИВЕТ МИР'; runFullEncryption();" class="text-xs text-indigo-400 hover:underline">Вставить пример</button>
+                            </div>
+                            <textarea id="enc-input" rows="3" oninput="runFullEncryption()" placeholder="Введите текст на русском языке..." class="w-full bg-slate-900/90 border border-slate-800 text-white rounded-2xl p-4 text-sm font-mono focus:outline-none focus:border-indigo-500">ПРИВЕТ МИР</textarea>
+                        </div>
+
+                        <div class="space-y-2">
+                            <div class="flex items-center justify-between">
+                                <label class="text-xs font-semibold uppercase text-emerald-400 font-bold">Результат:</label>
+                                <button onclick="copyOutput()" class="text-xs text-slate-400 hover:text-white flex items-center space-x-1">
+                                    <i class="fa-regular fa-copy"></i><span>Копировать</span>
+                                </button>
+                            </div>
+                            <div id="enc-output" class="w-full bg-slate-950 border border-indigo-500/30 text-emerald-400 rounded-2xl p-4 text-base font-mono min-h-[90px] flex items-center break-all shadow-inner">
+                                СУЛГЁХ РЛУ
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step-by-Step Visualization Table -->
+                <div class="pt-6 border-t border-slate-800 space-y-4">
+                    <h3 class="text-lg font-bold text-white flex items-center">
+                        <i class="fa-solid fa-list-check text-purple-400 mr-2"></i>Пошаговый разбор преобразования
+                    </h3>
+                    <div class="bg-slate-900/90 border border-slate-800 rounded-2xl overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-slate-950 border-b border-slate-800 text-xs font-semibold text-slate-400 uppercase">
+                                        <th class="p-4">№ Шага</th>
+                                        <th class="p-4">Исходная буква</th>
+                                        <th class="p-4">Правило / Сдвиг</th>
+                                        <th class="p-4">Результат</th>
+                                        <th class="p-4">Пояснение</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="step-table-body" class="divide-y divide-slate-800/60 font-mono text-sm">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-800 bg-slate-900/50 py-6 mt-12">
+        <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-500">
+            КриптоЛаб &bull; Учебное интерактивное пособие по русским классическим шифрам
+        </div>
+    </footer>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 border border-indigo-500 text-white px-4 py-3 rounded-xl shadow-2xl transition-all duration-300 transform translate-y-20 opacity-0 z-50 flex items-center space-x-2 text-sm">
+        <i class="fa-solid fa-circle-check text-indigo-400"></i>
+        <span id="toast-msg">Скопировано в буфер обмена!</span>
+    </div>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // Full Russian Alphabet (33 Letters)
+        const RUS_ALPHABET = "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ";
+        const ALPH_LEN = RUS_ALPHABET.length; // 33
+
+        // Global States
+        let currentTab = 'theory';
+        let animCipher = 'atbash';
+        let animRunning = false;
+        let encMode = 'encrypt';
+
+        // Initialize Page
+        window.onload = function() {
+            populateAnimDropdowns();
+            renderAlphabetTrack();
+            resetAnimState();
+            runFullEncryption();
+        };
+
+        // Tab Switcher
+        function switchTab(tabId) {
+            currentTab = tabId;
+            ['theory', 'animation', 'encoder'].forEach(t => {
+                const sec = document.getElementById(`tab-${t}`);
+                const nav = document.getElementById(`nav-${t}`);
+                const mobNav = document.getElementById(`mob-nav-${t}`);
+                
+                if (t === tabId) {
+                    sec.classList.remove('hidden');
+                    if (nav) nav.className = "px-5 py-2.5 rounded-lg text-sm font-medium transition-all bg-indigo-600 text-white shadow-lg";
+                    if (mobNav) mobNav.className = "flex-1 whitespace-nowrap px-3 py-2 rounded-lg text-xs font-medium bg-indigo-600 text-white";
+                } else {
+                    sec.classList.add('hidden');
+                    if (nav) nav.className = "px-5 py-2.5 rounded-lg text-sm font-medium transition-all text-slate-400 hover:text-white hover:bg-slate-800";
+                    if (mobNav) mobNav.className = "flex-1 whitespace-nowrap px-3 py-2 rounded-lg text-xs font-medium text-slate-400 bg-slate-800";
+                }
+            });
+
+            if (tabId === 'animation') resetAnimState();
+            if (tabId === 'encoder') runFullEncryption();
+        }
+
+        // ==========================================
+        // SECTION 2: ANIMATION X -> Y LOGIC
+        // ==========================================
+        function populateAnimDropdowns() {
+            const charSelect = document.getElementById('anim-input-char');
+            const keyCharSelect = document.getElementById('anim-vigenere-keychar');
+            charSelect.innerHTML = '';
+            keyCharSelect.innerHTML = '';
+
+            for (let i = 0; i < ALPH_LEN; i++) {
+                const ch = RUS_ALPHABET[i];
+                charSelect.innerHTML += `<option value="${ch}">${ch} (индекс ${i})</option>`;
+                keyCharSelect.innerHTML += `<option value="${ch}">${ch} (сдвиг +${i})</option>`;
+            }
+            // Defaults
+            charSelect.value = 'К';
+            keyCharSelect.value = 'Л';
+        }
+
+        function selectAnimCipher(cipher) {
+            if (animRunning) return;
+            animCipher = cipher;
+
+            ['atbash', 'caesar', 'vigenere'].forEach(c => {
+                const btn = document.getElementById(`anim-btn-${c}`);
+                if (c === cipher) {
+                    btn.className = "px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 text-white shadow-lg transition-all";
+                } else {
+                    btn.className = "px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all";
+                }
+            });
+
+            const caesarContainer = document.getElementById('anim-param-caesar-container');
+            const vigenereContainer = document.getElementById('anim-param-vigenere-container');
+
+            if (cipher === 'atbash') {
+                caesarContainer.classList.add('hidden');
+                vigenereContainer.classList.add('hidden');
+            } else if (cipher === 'caesar') {
+                caesarContainer.classList.remove('hidden');
+                vigenereContainer.classList.add('hidden');
+            } else if (cipher === 'vigenere') {
+                caesarContainer.classList.add('hidden');
+                vigenereContainer.classList.remove('hidden');
+            }
+
+            resetAnimState();
+        }
+
+        function renderAlphabetTrack() {
+            const track = document.getElementById('alphabet-track');
+            track.innerHTML = '';
+
+            for (let i = 0; i < ALPH_LEN; i++) {
+                const node = document.createElement('div');
+                node.id = `track-node-${i}`;
+                node.className = "letter-node min-w-[36px] h-10 rounded-lg bg-slate-950 border border-slate-800 text-slate-400 font-mono text-sm flex flex-col items-center justify-center font-semibold cursor-default";
+                node.innerHTML = `
+                    <span>${RUS_ALPHABET[i]}</span>
+                    <span class="text-[9px] text-slate-600 leading-none">${i}</span>
+                `;
+                track.appendChild(node);
+            }
+        }
+
+        function clearTrackHighlights() {
+            for (let i = 0; i < ALPH_LEN; i++) {
+                const node = document.getElementById(`track-node-${i}`);
+                if (node) {
+                    node.className = "letter-node min-w-[36px] h-10 rounded-lg bg-slate-950 border border-slate-800 text-slate-400 font-mono text-sm flex flex-col items-center justify-center font-semibold cursor-default";
+                }
+            }
+        }
+
+        function highlightTrackNode(index, type = 'active') {
+            const node = document.getElementById(`track-node-${index}`);
+            if (!node) return;
+
+            if (type === 'start') {
+                node.className = "letter-node min-w-[36px] h-10 rounded-lg bg-indigo-600 border border-indigo-400 text-white font-mono text-sm flex flex-col items-center justify-center font-bold shadow-lg scale-110";
+            } else if (type === 'step') {
+                node.className = "letter-node min-w-[36px] h-10 rounded-lg bg-purple-600/80 border border-purple-400 text-white font-mono text-sm flex flex-col items-center justify-center font-bold scale-105";
+            } else if (type === 'target') {
+                node.className = "letter-node min-w-[36px] h-10 rounded-lg bg-emerald-500 border border-emerald-300 text-slate-950 font-mono text-sm flex flex-col items-center justify-center font-bold shadow-lg scale-110";
+            }
+            node.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }
+
+        function resetAnimState() {
+            if (animRunning) return;
+            clearTrackHighlights();
+
+            const inChar = document.getElementById('anim-input-char').value;
+            const inIdx = RUS_ALPHABET.indexOf(inChar);
+
+            document.getElementById('anim-box-input').innerText = inChar;
+            document.getElementById('anim-box-input-idx').innerText = `индекс: ${inIdx}`;
+
+            document.getElementById('anim-box-output').innerText = '?';
+            document.getElementById('anim-box-output-idx').innerText = 'индекс: -';
+
+            document.getElementById('anim-step-title').innerText = "Готово к запуску";
+            document.getElementById('anim-step-counter').innerText = "Шаг 0 / 0";
+
+            if (animCipher === 'atbash') {
+                const outIdx = 32 - inIdx;
+                const outChar = RUS_ALPHABET[outIdx];
+                document.getElementById('anim-box-rule').innerText = `Зеркальное отражение`;
+                document.getElementById('anim-box-detail').innerText = `32 - ${inIdx} = ${outIdx} (${outChar})`;
+                document.getElementById('anim-log-text').innerText = `Шифр Атбаш заменяет букву '${inChar}' (${inIdx}) на противоположную '${outChar}' (${outIdx}).`;
+            } else if (animCipher === 'caesar') {
+                const shift = parseInt(document.getElementById('anim-caesar-shift').value) || 4;
+                const outIdx = (inIdx + shift) % ALPH_LEN;
+                const outChar = RUS_ALPHABET[outIdx];
+                document.getElementById('anim-box-rule').innerText = `Сдвиг Цезаря K = ${shift}`;
+                document.getElementById('anim-box-detail').innerText = `(${inIdx} + ${shift}) mod 33 = ${outIdx} (${outChar})`;
+                document.getElementById('anim-log-text').innerText = `Шифр Цезаря сдвигает букву '${inChar}' на ${shift} позиций вправо.`;
+            } else if (animCipher === 'vigenere') {
+                const kChar = document.getElementById('anim-vigenere-keychar').value;
+                const kIdx = RUS_ALPHABET.indexOf(kChar);
+                const outIdx = (inIdx + kIdx) % ALPH_LEN;
+                const outChar = RUS_ALPHABET[outIdx];
+                document.getElementById('anim-box-rule').innerText = `Ключ: '${kChar}' (+${kIdx})`;
+                document.getElementById('anim-box-detail').innerText = `(${inIdx} + ${kIdx}) mod 33 = ${outIdx} (${outChar})`;
+                document.getElementById('anim-log-text').innerText = `Шифр Виженера сдвигает букву '${inChar}' на величину буквы ключа '${kChar}' (+${kIdx}).`;
+            }
+
+            highlightTrackNode(inIdx, 'start');
+        }
+
+        async function startLetterAnimation() {
+            if (animRunning) return;
+            animRunning = true;
+            document.getElementById('anim-start-btn').disabled = true;
+            document.getElementById('anim-start-btn').classList.add('opacity-50');
+
+            clearTrackHighlights();
+
+            const inChar = document.getElementById('anim-input-char').value;
+            const inIdx = RUS_ALPHABET.indexOf(inChar);
+
+            highlightTrackNode(inIdx, 'start');
+            document.getElementById('anim-step-title').innerText = `Старт с буквы ${inChar}`;
+            document.getElementById('anim-log-text').innerText = `Шаг 1: Фиксация исходной позиции '${inChar}' (индекс ${inIdx}).`;
+
+            await sleep(800);
+
+            if (animCipher === 'atbash') {
+                const targetIdx = 32 - inIdx;
+                const targetChar = RUS_ALPHABET[targetIdx];
+
+                document.getElementById('anim-step-title').innerText = `Поиск зеркального отражения`;
+                document.getElementById('anim-step-counter').innerText = `Шаг 1 / 1`;
+                document.getElementById('anim-log-text').innerText = `Вычисление: 32 - ${inIdx} = ${targetIdx}. Переход на зеркальную букву '${targetChar}'.`;
+
+                highlightTrackNode(targetIdx, 'target');
+                document.getElementById('anim-box-output').innerText = targetChar;
+                document.getElementById('anim-box-output-idx').innerText = `индекс: ${targetIdx}`;
+                
+            } else if (animCipher === 'caesar' || animCipher === 'vigenere') {
+                let shift = 0;
+                if (animCipher === 'caesar') {
+                    shift = parseInt(document.getElementById('anim-caesar-shift').value) || 4;
+                } else {
+                    const kChar = document.getElementById('anim-vigenere-keychar').value;
+                    shift = RUS_ALPHABET.indexOf(kChar);
+                }
+
+                let currentIdx = inIdx;
+                for (let s = 1; s <= shift; s++) {
+                    currentIdx = (currentIdx + 1) % ALPH_LEN;
+                    highlightTrackNode(currentIdx, s === shift ? 'target' : 'step');
+
+                    document.getElementById('anim-step-title').innerText = `Смещение вправо (+${s})`;
+                    document.getElementById('anim-step-counter').innerText = `Шаг ${s} / ${shift}`;
+                    document.getElementById('anim-log-text').innerText = `Переход на позицию ${currentIdx} (Буква '${RUS_ALPHABET[currentIdx]}').`;
+
+                    await sleep(300);
+                }
+
+                const finalChar = RUS_ALPHABET[currentIdx];
+                document.getElementById('anim-box-output').innerText = finalChar;
+                document.getElementById('anim-box-output-idx').innerText = `индекс: ${currentIdx}`;
+                document.getElementById('anim-log-text').innerText = `Превращение завершено! Исходная буква '${inChar}' превратилась в '${finalChar}'.`;
+            }
+
+            animRunning = false;
+            document.getElementById('anim-start-btn').disabled = false;
+            document.getElementById('anim-start-btn').classList.remove('opacity-50');
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // ==========================================
+        // SECTION 3: ENCODER & STEP-BY-STEP LOGIC
+        // ==========================================
+        function handleEncoderMethodChange() {
+            const method = document.getElementById('enc-method').value;
+            const caesarSettings = document.getElementById('enc-caesar-settings');
+            const vigenereSettings = document.getElementById('enc-vigenere-settings');
+
+            if (method === 'atbash') {
+                caesarSettings.classList.add('hidden');
+                vigenereSettings.classList.add('hidden');
+            } else if (method === 'caesar') {
+                caesarSettings.classList.remove('hidden');
+                vigenereSettings.classList.add('hidden');
+            } else if (method === 'vigenere') {
+                caesarSettings.classList.add('hidden');
+                vigenereSettings.classList.remove('hidden');
+            }
+            runFullEncryption();
+        }
+
+        function setEncMode(mode) {
+            encMode = mode;
+            const btnEnc = document.getElementById('btn-mode-encrypt');
+            const btnDec = document.getElementById('btn-mode-decrypt');
+            if (mode === 'encrypt') {
+                btnEnc.className = "py-2.5 rounded-xl text-xs font-semibold bg-indigo-600 text-white transition-all shadow-md";
+                btnDec.className = "py-2.5 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all";
+            } else {
+                btnEnc.className = "py-2.5 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all";
+                btnDec.className = "py-2.5 rounded-xl text-xs font-semibold bg-indigo-600 text-white transition-all shadow-md";
+            }
+            runFullEncryption();
+        }
+
+        function processAtbash(text) {
+            let res = "";
+            let steps = [];
+            for (let i = 0; i < text.length; i++) {
+                let ch = text[i];
+                let upper = ch.toUpperCase();
+                let idx = RUS_ALPHABET.indexOf(upper);
+
+                if (idx !== -1) {
+                    let outIdx = (ALPH_LEN - 1) - idx;
+                    let outChar = RUS_ALPHABET[outIdx];
+                    let finalChar = (ch === upper) ? outChar : outChar.toLowerCase();
+                    res += finalChar;
+
+                    steps.push({
+                        char: ch,
+                        rule: `32 - ${idx}`,
+                        result: finalChar,
+                        explanation: `Буква '${ch}' (${idx}) зеркально отражается в '${finalChar}' (${outIdx}).`
+                    });
+                } else {
+                    res += ch;
+                    steps.push({
+                        char: ch,
+                        rule: `Пропуск`,
+                        result: ch,
+                        explanation: `Неалфавитный символ остается без изменений.`
+                    });
+                }
+            }
+            return { result: res, steps };
+        }
+
+        function processCaesar(text, shift, decrypt = false) {
+            let res = "";
+            let steps = [];
+            let effectiveShift = decrypt ? (ALPH_LEN - (shift % ALPH_LEN)) % ALPH_LEN : (shift % ALPH_LEN);
+
+            for (let i = 0; i < text.length; i++) {
+                let ch = text[i];
+                let upper = ch.toUpperCase();
+                let idx = RUS_ALPHABET.indexOf(upper);
+
+                if (idx !== -1) {
+                    let outIdx = (idx + effectiveShift) % ALPH_LEN;
+                    let outChar = RUS_ALPHABET[outIdx];
+                    let finalChar = (ch === upper) ? outChar : outChar.toLowerCase();
+                    res += finalChar;
+
+                    let ruleStr = decrypt ? `(${idx} - ${shift} + 33) mod 33` : `(${idx} + ${shift}) mod 33`;
+                    steps.push({
+                        char: ch,
+                        rule: ruleStr,
+                        result: finalChar,
+                        explanation: decrypt 
+                            ? `Сдвиг '${ch}' назад на ${shift} позиций дает '${finalChar}' (${outIdx}).`
+                            : `Сдвиг '${ch}' вперед на ${shift} позиций дает '${finalChar}' (${outIdx}).`
+                    });
+                } else {
+                    res += ch;
+                    steps.push({
+                        char: ch,
+                        rule: `Пропуск`,
+                        result: ch,
+                        explanation: `Неалфавитный символ остается без изменений.`
+                    });
+                }
+            }
+            return { result: res, steps };
+        }
+
+        function processVigenere(text, key, decrypt = false) {
+            let cleanKey = key.toUpperCase().replace(/[^А-ЯЁ]/g, '');
+            if (!cleanKey.length) cleanKey = "КЛЮЧ";
+
+            let res = "";
+            let steps = [];
+            let keyIdx = 0;
+
+            for (let i = 0; i < text.length; i++) {
+                let ch = text[i];
+                let upper = ch.toUpperCase();
+                let pIdx = RUS_ALPHABET.indexOf(upper);
+
+                if (pIdx !== -1) {
+                    let kChar = cleanKey[keyIdx % cleanKey.length];
+                    let kShift = RUS_ALPHABET.indexOf(kChar);
+
+                    let cIdx = decrypt 
+                        ? (pIdx - kShift + ALPH_LEN) % ALPH_LEN 
+                        : (pIdx + kShift) % ALPH_LEN;
+
+                    let outChar = RUS_ALPHABET[cIdx];
+                    let finalChar = (ch === upper) ? outChar : outChar.toLowerCase();
+                    res += finalChar;
+
+                    let ruleStr = decrypt ? `(${pIdx} - ${kShift}) mod 33` : `(${pIdx} + ${kShift}) mod 33`;
+                    steps.push({
+                        char: ch,
+                        rule: `Ключ '${kChar}' [${ruleStr}]`,
+                        result: finalChar,
+                        explanation: decrypt
+                            ? `Буква '${ch}' (${pIdx}) минус символ ключа '${kChar}' (+${kShift}) дает '${finalChar}'.`
+                            : `Буква '${ch}' (${pIdx}) плюс символ ключа '${kChar}' (+${kShift}) дает '${finalChar}'.`
+                    });
+                    keyIdx++;
+                } else {
+                    res += ch;
+                    steps.push({
+                        char: ch,
+                        rule: `Пропуск`,
+                        result: ch,
+                        explanation: `Неалфавитный символ остается без изменений.`
+                    });
+                }
+            }
+            return { result: res, steps };
+        }
+
+        function runFullEncryption() {
+            const method = document.getElementById('enc-method').value;
+            const input = document.getElementById('enc-input').value;
+            const shiftInput = parseInt(document.getElementById('enc-caesar-shift').value) || 3;
+            document.getElementById('enc-caesar-val').innerText = shiftInput;
+            const vigenereKey = document.getElementById('enc-vigenere-key').value || "КЛЮЧ";
+
+            const isDecrypt = (encMode === 'decrypt');
+            let data = { result: "", steps: [] };
+
+            if (method === 'atbash') {
+                data = processAtbash(input);
+            } else if (method === 'caesar') {
+                data = processCaesar(input, shiftInput, isDecrypt);
+            } else if (method === 'vigenere') {
+                data = processVigenere(input, vigenereKey, isDecrypt);
+            }
+
+            document.getElementById('enc-output').innerText = data.result || "(пусто)";
+            renderStepTable(data.steps);
+        }
+
+        function renderStepTable(steps) {
+            const tbody = document.getElementById('step-table-body');
+            tbody.innerHTML = '';
+
+            if (!steps || steps.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-500">Введите текст для визуализации разбора.</td></tr>`;
+                return;
+            }
+
+            steps.forEach((step, idx) => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-800/40 transition-colors";
+                tr.innerHTML = `
+                    <td class="p-4 text-indigo-400 font-bold">#${idx + 1}</td>
+                    <td class="p-4"><span class="px-2.5 py-1 bg-indigo-500/20 text-indigo-300 rounded-lg font-bold">${step.char}</span></td>
+                    <td class="p-4 text-slate-300 text-xs">${step.rule}</td>
+                    <td class="p-4"><span class="px-2.5 py-1 bg-emerald-500/20 text-emerald-300 rounded-lg font-bold">${step.result}</span></td>
+                    <td class="p-4 text-xs text-slate-400">${step.explanation}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function copyOutput() {
+            const text = document.getElementById('enc-output').innerText;
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+
+            const toast = document.getElementById('toast');
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 2500);
+        }
+    </script>
+</body>
+</html>
